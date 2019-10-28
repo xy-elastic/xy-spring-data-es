@@ -2,13 +2,19 @@ package com.xywei.test;
 
 import com.xywei.dao.EmployeeDao;
 import com.xywei.domain.Employee;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,7 +50,7 @@ public class SpringDataESTest {
     @Test
     public void testInsertDocument() {
 
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 20; i++) {
             Employee employee = new Employee();
             employee.setId(Long.parseLong(i + ""));
             employee.setName("国产00" + i);
@@ -111,5 +117,47 @@ public class SpringDataESTest {
          **/
         Optional<Employee> employee = employeeDao.findById(5L);
         System.out.println(employee.get());
+    }
+
+    /**
+     * @Description 自定义查询, 默认返回10条数据
+     * @Author future
+     * @DateTime 2019/10/28 15:01
+     **/
+    @Test
+    public void testCustomFind() {
+//        List<Employee> employees = employeeDao.findEmployeesByNameLike("%001%");
+//        employees.stream().forEach(employee -> System.out.println(employee));
+
+        List<Employee> employees = employeeDao.findEmployeesByNameOrAddress("%001%", "四川");
+        employees.forEach(employee -> System.out.println(employee));
+    }
+
+    /**
+     * @Description 设置分页查询
+     * @Author future
+     * @DateTime 2019/10/28 15:12
+     **/
+    @Test
+    public void testCustomFindPage() {
+        Pageable pageable = PageRequest.of(0, 3);
+        List<Employee> employees = employeeDao.findEmployeesByNameLike("%00%", pageable);
+        employees.forEach(employee -> System.out.println(employee));
+    }
+
+    /**
+     * @Description 使用原生的查询
+     * @Author future
+     * @DateTime 2019/10/28 15:32
+     **/
+    @Test
+    public void testByQuerString() {
+        //querybuilder
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
+                .withQuery(QueryBuilders.queryStringQuery("国四成都").defaultField("address"))
+                .withPageable(PageRequest.of(0, 10))
+                .build();
+        List<Employee> employees = elasticsearchTemplate.queryForList(nativeSearchQuery, Employee.class);
+        employees.forEach(employee -> System.out.println(employee));
     }
 }
